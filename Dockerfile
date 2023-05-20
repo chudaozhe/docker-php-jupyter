@@ -1,22 +1,16 @@
-FROM php:7.4-fpm
-# Install Jupyter
-RUN apt-get update \
-  && apt-get install -y python3-pip \
-  && pip3 install jupyterlab
-
-# Install Jupyter-PHP
-RUN apt-get update \
-  && apt-get install -y zlib1g-dev libzmq3-dev git \
-  && docker-php-ext-install zip
-COPY . /usr/src/php/ext
-# RUN pecl install zmq-beta \
-#  && docker-php-ext-enable zmq \
-#  && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
-#  && curl -sS -o /tmp/jupyter-php-installer.phar https://litipk.github.io/Jupyter-PHP-Installer/dist/jupyter-php-installer.phar \
-#  && php /tmp/jupyter-php-installer.phar install -v \
-#  && rm -f /tmp/jupyter-php-installer.phar
+FROM php:8.1.9-fpm
 
 WORKDIR /notebooks
 
-CMD ["jupyter", "lab", "--allow-root", "--ip=0.0.0.0", "--LabApp.token=''", "--notebook-dir=/notebooks"]
+COPY ./php-zmq /usr/src/php/ext/php-zmq
+COPY ./jupyter-php-installer.phar /tmp
 
+RUN apt-get update \
+  && apt-get install -y python3-pip zlib1g-dev libzmq3-dev libzip-dev \
+  && pip3 install jupyterlab \
+  && docker-php-ext-install zip php-zmq \
+  && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
+  && php /tmp/jupyter-php-installer.phar install -v \
+  && rm -f /tmp/jupyter-php-installer.phar
+
+CMD ["jupyter", "lab", "--allow-root", "--ip=0.0.0.0", "--LabApp.token=''", "--notebook-dir=/notebooks"]
